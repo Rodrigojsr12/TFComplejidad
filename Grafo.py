@@ -27,7 +27,7 @@ class PantallaInicio(QWidget):
         palette.setColor(QPalette.Window, QColor("#7EDEEA"))
         self.setPalette(palette)
 
-        titulo_font = QFont('Helvetica', 20, QFont.Bold)
+        titulo_font = QFont('Montserrat', 20, QFont.Bold)
         
         titulo = QLabel('Bienvenido a la Red de Entrega de Paquetes en Lima')
         titulo.setFont(titulo_font)
@@ -77,7 +77,7 @@ class GraphApp(QWidget):
         # Crear un conjunto único de nodos
         nodos = set(self.df['Origen']).union(set(self.df['Destino']))
         if len(nodos) > 1500:
-            nodos = set(list(nodos)[:1500])  # Limitamos a 1500 nodos para la visualización
+            nodos = set(list(nodos)[:1500]) 
 
         # Filtrar el DataFrame para incluir solo los nodos seleccionados
         self.df = self.df[self.df['Origen'].isin(nodos) & self.df['Destino'].isin(nodos)]
@@ -98,10 +98,8 @@ class GraphApp(QWidget):
     def initUI(self):
         layout = QVBoxLayout()
 
-        # Fuente para títulos
-        titulo_font = QFont('Helvetica', 16, QFont.Bold)
-        
-        # Etiqueta de título
+        titulo_font = QFont('Montserrat', 16, QFont.Bold)
+    
         titulo = QLabel('Red de Entrega de Paquetes en Lima')
         titulo.setFont(titulo_font)
         titulo.setAlignment(Qt.AlignCenter)
@@ -123,7 +121,6 @@ class GraphApp(QWidget):
         self.calcular_button.clicked.connect(self.calcular_rutas)
         layout.addWidget(self.calcular_button)
 
-        # Botón para cerrar el programa
         self.cerrar_button = QPushButton('Cerrar Programa', self)
         self.cerrar_button.clicked.connect(self.cerrar_programa)
         layout.addWidget(self.cerrar_button)
@@ -133,7 +130,7 @@ class GraphApp(QWidget):
         self.resultado_label.setReadOnly(True)
         layout.addWidget(self.resultado_label)
 
-        # Widget para mostrar el gráfico de matplotlib
+        # mostrar el gráfico
         self.canvas = FigureCanvas(plt.Figure())
         layout.addWidget(self.canvas)
 
@@ -148,11 +145,11 @@ class GraphApp(QWidget):
             self.mostrar_error("Uno o ambos nodos no están en el grafo. Asegúrate de que los nodos existan o estén bien escritos y vuelve a intentarlo.")
         else:
             try:
-                # Calcular la ruta más corta usando Dijkstra (peso = tiempo)
+                # Calcular la ruta más corta usando Dijkstra
                 ruta_corta = nx.shortest_path(self.G, source=origen_usuario, target=destino_usuario, weight='weight')
                 tiempo_total_corto = nx.shortest_path_length(self.G, source=origen_usuario, target=destino_usuario, weight='weight')
                 
-                # Calcular la ruta más barata usando Dijkstra (peso = costo)
+                # Calcular la ruta más barata usando Dijkstra
                 ruta_barata = nx.shortest_path(self.G, source=origen_usuario, target=destino_usuario, weight='cost')
                 costo_total_barato = nx.shortest_path_length(self.G, source=origen_usuario, target=destino_usuario, weight='cost')
 
