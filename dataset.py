@@ -157,7 +157,7 @@ for _ in range(5000):
         "Longitud_Origen": lon_origen,
         "Latitud_Destino": lat_destino,
         "Longitud_Destino": lon_destino,
-        "Tiempo_Recorrido": f"{int(tiempo)}:{int((tiempo % 1) * 60):02d}",  # Formato MM:SS
+        "Tiempo_Recorrido": f"{int(tiempo)}:{int((tiempo % 1) * 60):02d}",  # minutos y segundos
         "Distancia_km": distancia,
         "Costo": costo,
     })
