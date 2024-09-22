@@ -24,41 +24,36 @@ class PantallaInicio(QWidget):
 
         # Fondo de la pantalla de inicio
         palette = self.palette()
-        palette.setColor(QPalette.Window, QColor("#cfe2f3"))
+        palette.setColor(QPalette.Window, QColor("#7EDEEA"))
         self.setPalette(palette)
 
-        # Fuente para títulos
-        titulo_font = QFont('Helvetica', 20, QFont.Bold)
+        titulo_font = QFont('Montserrat', 20, QFont.Bold)
         
-        # Título
         titulo = QLabel('Bienvenido a la Red de Entrega de Paquetes en Lima')
         titulo.setFont(titulo_font)
         titulo.setAlignment(Qt.AlignCenter)
         layout.addWidget(titulo)
 
-        # Nombres de los desarrolladores
         nombres = ["U202215705 - Carlos Adrianzén", "U202214406 - Alejandro Barturen", "U202213646 - Rodrigo Salvador"]
         desarrolladores_label = QLabel("Desarrollado por:")
-        desarrolladores_label.setFont(QFont('Helvetica', 16, QFont.Bold))
+        desarrolladores_label.setFont(QFont('Times New Roman', 16, QFont.Bold))
         desarrolladores_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(desarrolladores_label)
 
         for nombre in nombres:
             nombre_label = QLabel(nombre)
-            nombre_label.setFont(QFont('Helvetica', 14))
+            nombre_label.setFont(QFont('Times New Roman', 16))
             nombre_label.setAlignment(Qt.AlignCenter)
             layout.addWidget(nombre_label)
 
-        # Botón para continuar al menú principal
         iniciar_button = QPushButton('Iniciar Proceso')
-        iniciar_button.setFont(QFont('Helvetica', 14))
+        iniciar_button.setFont(QFont('Montserrat', 14))
         iniciar_button.clicked.connect(self.cambiar_a_pantalla_principal)
         layout.addWidget(iniciar_button)
 
         self.setLayout(layout)
 
     def cambiar_a_pantalla_principal(self):
-        # Cambiar a la pantalla principal (gráfico y entradas)
         self.parentWidget().setCurrentIndex(1)
 
 # Clase para la pantalla principal de la aplicación
@@ -69,25 +64,20 @@ class GraphApp(QWidget):
         self.title = 'Red de Entrega de Paquetes en Lima'
         self.G = nx.DiGraph()
         self.df = pd.DataFrame()
-        self.node_positions = {}  # Posiciones fijas de los nodos
+        self.node_positions = {}  
         self.initUI()
         self.cargar_datos()
 
     # Cargar los datos y crear el grafo
     def cargar_datos(self):
-        # Ruta al archivo CSV
-        file_path = 'lima_delivery_network2.csv'  # Asegúrate de que este es el nombre correcto de tu archivo
-
-        # Cargar el dataset
+        file_path = 'lima_delivery_network2.csv' 
         self.df = pd.read_csv(file_path)
-
-        # Crear un grafo dirigido
         self.G = nx.DiGraph()
 
         # Crear un conjunto único de nodos
         nodos = set(self.df['Origen']).union(set(self.df['Destino']))
         if len(nodos) > 1500:
-            nodos = set(list(nodos)[:1500])  # Selecciona solo 1500 nodos si hay más
+            nodos = set(list(nodos)[:1500])  
 
         # Filtrar el DataFrame para incluir solo los nodos seleccionados
         self.df = self.df[self.df['Origen'].isin(nodos) & self.df['Destino'].isin(nodos)]
@@ -96,11 +86,11 @@ class GraphApp(QWidget):
         for _, row in self.df.iterrows():
             origen = row['Origen']
             destino = row['Destino']
-            tiempo = tiempo_a_minutos(row['Tiempo_Recorrido'])
-            costo = row['Costo']
+            tiempo = tiempo_a_minutos(row['Tiempo_Recorrido'])  
+            costo = row['Costo'] 
             
-            # Añadir nodo y arista con peso (tiempo de recorrido) y costo
-            self.G.add_edge(origen, destino, weight=tiempo, cost=costo)
+            # Añadir los atributos 'tiempo' y 'costo' a las aristas
+            self.G.add_edge(origen, destino, tiempo=tiempo, costo=costo)
 
         # Calcular posiciones fijas para los nodos
         self.node_positions = nx.spring_layout(self.G, k=0.5, iterations=50)
@@ -109,10 +99,8 @@ class GraphApp(QWidget):
     def initUI(self):
         layout = QVBoxLayout()
 
-        # Fuente para títulos
-        titulo_font = QFont('Helvetica', 16, QFont.Bold)
+        titulo_font = QFont('Montserrat', 16, QFont.Bold)
         
-        # Etiqueta de título
         titulo = QLabel('Red de Entrega de Paquetes en Lima')
         titulo.setFont(titulo_font)
         titulo.setAlignment(Qt.AlignCenter)
@@ -156,20 +144,20 @@ class GraphApp(QWidget):
         destino_usuario = self.destino_entry.text()
 
         if origen_usuario not in self.G.nodes or destino_usuario not in self.G.nodes:
-            self.mostrar_error("Uno o ambos nodos no están en el grafo. Asegúrate de que los nodos existan y vuelve a intentarlo.")
+            self.mostrar_error("Uno o ambos nodos no están en el grafo. Asegúrate de que los nodos existan o estén bien escritos y vuelve a intentarlo.")
         else:
             try:
-                # Calcular la ruta más corta usando Dijkstra (peso = tiempo)
-                ruta_corta = nx.shortest_path(self.G, source=origen_usuario, target=destino_usuario, weight='weight')
-                tiempo_total_corto = nx.shortest_path_length(self.G, source=origen_usuario, target=destino_usuario, weight='weight')
+                # Calcular la ruta más corta usando Dijkstra (usando 'tiempo' como métrica)
+                ruta_corta = nx.shortest_path(self.G, source=origen_usuario, target=destino_usuario, weight='tiempo')
+                tiempo_total_corto = nx.shortest_path_length(self.G, source=origen_usuario, target=destino_usuario, weight='tiempo')
                 
-                # Calcular la ruta más barata usando Dijkstra (peso = costo)
-                ruta_barata = nx.shortest_path(self.G, source=origen_usuario, target=destino_usuario, weight='cost')
-                costo_total_barato = nx.shortest_path_length(self.G, source=origen_usuario, target=destino_usuario, weight='cost')
+                # Calcular la ruta más barata usando Dijkstra (usando 'costo' como métrica)
+                ruta_barata = nx.shortest_path(self.G, source=origen_usuario, target=destino_usuario, weight='costo')
+                costo_total_barato = nx.shortest_path_length(self.G, source=origen_usuario, target=destino_usuario, weight='costo')
 
                 # Calcular el costo y tiempo total de las rutas
-                costo_total_corto = sum(self.G[u][v]['cost'] for u, v in zip(ruta_corta[:-1], ruta_corta[1:]))
-                tiempo_total_barato = sum(self.G[u][v]['weight'] for u, v in zip(ruta_barata[:-1], ruta_barata[1:]))
+                costo_total_corto = sum(self.G[u][v]['costo'] for u, v in zip(ruta_corta[:-1], ruta_corta[1:]))
+                tiempo_total_barato = sum(self.G[u][v]['tiempo'] for u, v in zip(ruta_barata[:-1], ruta_barata[1:]))
 
                 # Mostrar los resultados en la interfaz
                 resultado = (f"Ruta más corta: {' -> '.join(ruta_corta)}\n"
@@ -191,7 +179,7 @@ class GraphApp(QWidget):
     def mostrar_error(self, mensaje):
         QMessageBox.warning(self, 'Error', mensaje)
 
-     # Función para visualizar el grafo con dos rutas
+    # Función para visualizar el grafo con dos rutas
     def visualizar_grafo(self, ruta_corta, ruta_barata):
         self.canvas.figure.clear()
 
@@ -202,11 +190,11 @@ class GraphApp(QWidget):
         nx.draw_networkx_edges(self.G, pos, edgelist=self.G.edges(), width=1, alpha=0.5, edge_color='gray', ax=ax)
         nx.draw_networkx_labels(self.G, pos, font_size=8, ax=ax)
 
-        # Dibujar la ruta más corta (en rojo)
+        # Dibujar la ruta más corta
         nx.draw_networkx_edges(self.G, pos, edgelist=list(zip(ruta_corta[:-1], ruta_corta[1:])), 
                                edge_color='red', width=2, ax=ax)
 
-        # Dibujar la ruta más barata (en azul)
+        # Dibujar la ruta más barata
         nx.draw_networkx_edges(self.G, pos, edgelist=list(zip(ruta_barata[:-1], ruta_barata[1:])), 
                                edge_color='blue', width=2, ax=ax)
 
@@ -214,7 +202,7 @@ class GraphApp(QWidget):
         ax.axis('off')
 
         self.canvas.draw()
-    # Función para cerrar el programa
+
     def cerrar_programa(self):
         self.close()
 
