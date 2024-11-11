@@ -1,230 +1,391 @@
 import sys
 import pandas as pd
+import numpy as np
 import networkx as nx
 from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QLabel, QPushButton,
-                             QLineEdit, QTextEdit, QMessageBox, QStackedWidget)
-from PyQt5.QtGui import QFont, QPalette, QColor
+                           QStackedWidget, QGraphicsOpacityEffect, QMessageBox, 
+                           QLineEdit, QTextEdit)
+from PyQt5.QtGui import QFont, QPalette, QColor, QPixmap
 from PyQt5.QtCore import Qt
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
-# Función para convertir tiempo en formato MM:SS a minutos
-def tiempo_a_minutos(tiempo):
-    minutos, segundos = map(int, tiempo.split(':'))
-    return minutos + segundos / 60
-
-# Clase para la pantalla de inicio
 class PantallaInicio(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        # Establecer un tamaño mínimo para la ventana
+        self.setMinimumSize(800, 600)
         self.initUI()
 
     def initUI(self):
+        # Crear layout principal
         layout = QVBoxLayout()
+        self.setLayout(layout)
 
-        # Fondo de la pantalla de inicio
-        palette = self.palette()
-        palette.setColor(QPalette.Window, QColor("#7EDEEA"))
-        self.setPalette(palette)
+        # Crear y configurar el label de fondo
+        self.fondo = QLabel(self)
+        self.fondo.setFixedSize(self.size())
+        self.fondo.setAutoFillBackground(True)
+        self.actualizar_fondo()
 
-        titulo_font = QFont('Montserrat', 20, QFont.Bold)
+        # Configurar el título
+        titulo = QLabel('PackPath Lima')
+        titulo_font = QFont('Arial Black', 32, QFont.Bold)
+        titulo.setFont(titulo_font)
+        titulo.setAlignment(Qt.AlignCenter)
+        titulo.setStyleSheet("QLabel { color: #00FFFF; }")
+        layout.addWidget(titulo)
         
-        titulo = QLabel('Bienvenido a la Red de Entrega de Paquetes en Lima')
+        # Añadir espacio entre el título y los botones
+        layout.addSpacing(50)
+
+        # Configurar los botones principales
+        botones = {
+            "Mostrar grafo": self.mostrar_grafo,
+            "Aplicar algoritmo de Dijkstra": self.aplicar_dijkstra,
+            "Aplicar algoritmo de Bellman-Ford": self.aplicar_bellman_ford,
+            "Integrantes": self.mostrar_integrantes
+        }
+
+        for texto, funcion in botones.items():
+            boton = QPushButton(texto)
+            boton.setFont(QFont('Arial', 12))
+            boton.setFixedWidth(300)
+            boton.setMinimumHeight(40)
+            boton.setStyleSheet("""
+                QPushButton {
+                    background-color: rgba(0, 255, 255, 180);
+                    color: black;
+                    border: 2px solid #008B8B;
+                    border-radius: 15px;
+                    padding: 8px;
+                }
+                QPushButton:hover {
+                    background-color: rgba(0, 139, 139, 180);
+                    color: white;
+                }
+            """)
+            boton.clicked.connect(funcion)
+            layout.addWidget(boton, alignment=Qt.AlignCenter)
+            layout.addSpacing(10)
+
+        # Añadir espacio antes del botón salir
+        layout.addSpacing(20)
+
+        # Botón de salir
+        boton_salir = QPushButton("Salir")
+        boton_salir.setFont(QFont('Arial', 12))
+        boton_salir.setFixedWidth(100)
+        boton_salir.setMinimumHeight(30)
+        boton_salir.setStyleSheet("""
+            QPushButton {
+                background-color: rgba(255, 99, 71, 180);
+                color: white;
+                border: 2px solid #FF4433;
+                border-radius: 15px;
+                padding: 5px;
+            }
+            QPushButton:hover {
+                background-color: rgba(255, 68, 51, 180);
+                color: white;
+            }
+        """)
+        boton_salir.clicked.connect(QApplication.instance().quit)
+        layout.addWidget(boton_salir, alignment=Qt.AlignRight)
+
+        # Hacer que los widgets estén por encima del fondo
+        for i in range(layout.count()):
+            widget = layout.itemAt(i).widget()
+            if widget:
+                widget.raise_()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.actualizar_fondo()
+
+    def actualizar_fondo(self):
+        # Actualizar el tamaño y la imagen de fondo
+        pixmap = QPixmap("C:/Users/Rodrigo/Documents/Python/proyectopruebas/delivery.jpg") # Aqui se tiene que actualizar con tu direccion
+        scaled_pixmap = pixmap.scaled(
+            self.size(),
+            Qt.KeepAspectRatioByExpanding,
+            Qt.SmoothTransformation
+        )
+        
+        # Calcular las coordenadas para centrar la imagen
+        x = (scaled_pixmap.width() - self.width()) // 2
+        y = (scaled_pixmap.height() - self.height()) // 2
+        
+        # Recortar la imagen para que se ajuste exactamente a la ventana
+        cropped_pixmap = scaled_pixmap.copy(
+            x, y, self.width(), self.height()
+        )
+        
+        self.fondo.setPixmap(cropped_pixmap)
+        self.fondo.setGeometry(0, 0, self.width(), self.height())
+        self.fondo.lower()
+
+    def mostrar_grafo(self):
+        self.parentWidget().setCurrentIndex(1)
+
+    def aplicar_dijkstra(self):
+        self.parentWidget().setCurrentIndex(2)
+
+    def aplicar_bellman_ford(self):
+        pass
+
+    def mostrar_integrantes(self):
+        self.parentWidget().setCurrentIndex(3)  # Índice de la pantalla de integrantes
+
+class GraphVisualization(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.df = None
+        self.initUI()
+        self.cargar_y_visualizar_datos()
+
+    def initUI(self):
+        layout = QVBoxLayout()
+        
+        titulo = QLabel('Visualización del Grafo de Entregas')
+        titulo_font = QFont('Helvetica', 16, QFont.Bold)
         titulo.setFont(titulo_font)
         titulo.setAlignment(Qt.AlignCenter)
         layout.addWidget(titulo)
 
-        nombres = ["U202215705 - Carlos Adrianzén", "U202214406 - Alejandro Barturen", "U202213646 - Rodrigo Salvador"]
-        desarrolladores_label = QLabel("Desarrollado por:")
-        desarrolladores_label.setFont(QFont('Times New Roman', 16, QFont.Bold))
-        desarrolladores_label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(desarrolladores_label)
+        # Canvas para el gráfico
+        self.figure = plt.Figure(figsize=(10, 8))
+        self.canvas = FigureCanvas(self.figure)
+        layout.addWidget(self.canvas)
 
-        for nombre in nombres:
-            nombre_label = QLabel(nombre)
-            nombre_label.setFont(QFont('Times New Roman', 16))
-            nombre_label.setAlignment(Qt.AlignCenter)
-            layout.addWidget(nombre_label)
-
-        iniciar_button = QPushButton('Iniciar Proceso')
-        iniciar_button.setFont(QFont('Helvetica', 14))
-        iniciar_button.clicked.connect(self.cambiar_a_pantalla_principal)
-        layout.addWidget(iniciar_button)
+        # Botón de volver
+        boton_volver = QPushButton("Volver al Inicio")
+        boton_volver.clicked.connect(self.volver_inicio)
+        layout.addWidget(boton_volver)
 
         self.setLayout(layout)
 
-    def cambiar_a_pantalla_principal(self):
-        self.parentWidget().setCurrentIndex(1)
+    def cargar_y_visualizar_datos(self):
+        try:
+            # Cargar datos
+            self.df = pd.read_csv('lima_delivery_network3.csv')
+            
+            # Crear el grafo
+            G = nx.DiGraph()
+            
+            # Añadir nodos
+            nodos = set(self.df['Origen'].unique()) | set(self.df['Destino'].unique())
+            G.add_nodes_from(nodos)
+            
+            # Calcular el layout
+            pos = nx.spring_layout(G, k=2, iterations=50)
+            
+            # Crear el gráfico
+            ax = self.figure.add_subplot(111)
+            
+            # Obtener coordenadas de los nodos
+            x_coords = [pos[node][0] for node in G.nodes()]
+            y_coords = [pos[node][1] for node in G.nodes()]
+            
+            # Crear scatter plot solo con los nodos
+            scatter = ax.scatter(
+                x_coords,
+                y_coords,
+                c='blue',  # Color único para todos los nodos
+                alpha=0.6,
+                s=30  # Tamaño un poco más grande para mejor visibilidad
+            )
 
-# Clase para la pantalla principal de la aplicación
-class GraphApp(QWidget):
+            # Configurar el gráfico
+            ax.set_title('Red de Entregas - Nodos')
+            ax.grid(True, linestyle='--', alpha=0.3)
+            
+            # Actualizar el canvas
+            self.canvas.draw()
+
+        except Exception as e:
+            QMessageBox.critical(self, 'Error', f'Error al cargar o visualizar los datos: {str(e)}')
+
+    def volver_inicio(self):
+        self.parentWidget().setCurrentIndex(0)
+
+class DijkstraApp(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-
-        self.title = 'Red de Entrega de Paquetes en Lima'
         self.G = nx.DiGraph()
         self.df = pd.DataFrame()
-        self.node_positions = {}  
+        self.node_positions = {}
         self.initUI()
         self.cargar_datos()
 
-    # Cargar los datos y crear el grafo
     def cargar_datos(self):
-        file_path = 'lima_delivery_network3.csv' 
+        file_path = 'lima_delivery_network3.csv'
         self.df = pd.read_csv(file_path)
         self.G = nx.DiGraph()
 
-        # Crear un conjunto único de nodos
         nodos = set(self.df['Origen']).union(set(self.df['Destino']))
         if len(nodos) > 1500:
-            nodos = set(list(nodos)[:1500]) 
+            nodos = set(list(nodos)[:1500])
 
-        # Filtrar el DataFrame para incluir solo los nodos seleccionados
         self.df = self.df[self.df['Origen'].isin(nodos) & self.df['Destino'].isin(nodos)]
 
-        # Agregar nodos y aristas al grafo
         for _, row in self.df.iterrows():
             origen = row['Origen']
             destino = row['Destino']
             tiempo = tiempo_a_minutos(row['Tiempo_Recorrido'])
             costo = row['Costo']
-            
             self.G.add_edge(origen, destino, weight=tiempo, cost=costo)
 
-        # Calcular posiciones fijas para los nodos
         self.node_positions = nx.spring_layout(self.G, k=0.5, iterations=50)
 
-    # Configuración inicial de la UI
     def initUI(self):
         layout = QVBoxLayout()
 
-        titulo_font = QFont('Montserrat', 16, QFont.Bold)
-    
-        titulo = QLabel('Red de Entrega de Paquetes en Lima')
+        titulo = QLabel('Algoritmo de Dijkstra - Cálculo de Ruta Más Corta')
+        titulo_font = QFont('Helvetica', 16, QFont.Bold)
         titulo.setFont(titulo_font)
         titulo.setAlignment(Qt.AlignCenter)
         layout.addWidget(titulo)
 
-        # Campos de entrada para origen y destino
-        self.origen_label = QLabel('Nodo de origen:')
-        layout.addWidget(self.origen_label)
         self.origen_entry = QLineEdit(self)
+        layout.addWidget(QLabel('Nodo de origen:'))
         layout.addWidget(self.origen_entry)
 
-        self.destino_label = QLabel('Nodo de destino:')
-        layout.addWidget(self.destino_label)
         self.destino_entry = QLineEdit(self)
+        layout.addWidget(QLabel('Nodo de destino:'))
         layout.addWidget(self.destino_entry)
 
-        # Botón para calcular la ruta
         self.calcular_button = QPushButton('Calcular Ruta', self)
         self.calcular_button.clicked.connect(self.calcular_rutas)
         layout.addWidget(self.calcular_button)
 
-        self.cerrar_button = QPushButton('Cerrar Programa', self)
-        self.cerrar_button.clicked.connect(self.cerrar_programa)
-        layout.addWidget(self.cerrar_button)
-
-        # Campo para mostrar resultados
         self.resultado_label = QTextEdit(self)
         self.resultado_label.setReadOnly(True)
         layout.addWidget(self.resultado_label)
 
-        # mostrar el gráfico
         self.canvas = FigureCanvas(plt.Figure())
         layout.addWidget(self.canvas)
 
+        boton_volver = QPushButton("Volver al Inicio")
+        boton_volver.clicked.connect(self.volver_inicio)
+        layout.addWidget(boton_volver)
+
         self.setLayout(layout)
 
-    # Función para calcular la ruta más corta y la más barata
     def calcular_rutas(self):
-        origen_usuario = self.origen_entry.text()
-        destino_usuario = self.destino_entry.text()
+        pass
 
-        if origen_usuario not in self.G.nodes or destino_usuario not in self.G.nodes:
-            self.mostrar_error("Uno o ambos nodos no están en el grafo. Asegúrate de que los nodos existan o estén bien escritos y vuelve a intentarlo.")
-        else:
-            try:
-                # Calcular la ruta más corta usando Dijkstra
-                ruta_corta = nx.shortest_path(self.G, source=origen_usuario, target=destino_usuario, weight='weight')
-                tiempo_total_corto = nx.shortest_path_length(self.G, source=origen_usuario, target=destino_usuario, weight='weight')
-                
-                # Calcular la ruta más barata usando Dijkstra
-                ruta_barata = nx.shortest_path(self.G, source=origen_usuario, target=destino_usuario, weight='cost')
-                costo_total_barato = nx.shortest_path_length(self.G, source=origen_usuario, target=destino_usuario, weight='cost')
+    def volver_inicio(self):
+        self.parentWidget().setCurrentIndex(0)
 
-                # Calcular el costo y tiempo total de las rutas
-                costo_total_corto = sum(self.G[u][v]['cost'] for u, v in zip(ruta_corta[:-1], ruta_corta[1:]))
-                tiempo_total_barato = sum(self.G[u][v]['weight'] for u, v in zip(ruta_barata[:-1], ruta_barata[1:]))
+# Nueva clase para la pantalla de integrantes
+class PantallaIntegrantes(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.initUI()
 
-                # Mostrar los resultados en la interfaz
-                resultado = (f"Ruta más corta: {' -> '.join(ruta_corta)}\n"
-                             f"Tiempo de recorrido: {tiempo_total_corto:.2f} minutos\n"
-                             f"Costo de la ruta: {costo_total_corto:.2f} soles\n\n"
-                             f"Ruta más barata: {' -> '.join(ruta_barata)}\n"
-                             f"Costo de la ruta: {costo_total_barato:.2f} soles\n"
-                             f"Tiempo de recorrido: {tiempo_total_barato:.2f} minutos")
+    def initUI(self):
+        # Configurar el layout principal
+        layout = QVBoxLayout()
+        self.setLayout(layout)
 
-                self.resultado_label.setText(resultado)
+        # Título
+        titulo = QLabel('Integrantes del Proyecto')
+        titulo_font = QFont('Arial Black', 24, QFont.Bold)
+        titulo.setFont(titulo_font)
+        titulo.setAlignment(Qt.AlignCenter)
+        titulo.setStyleSheet("color: #00FFFF;")
+        layout.addWidget(titulo)
+        
+        layout.addSpacing(40)
 
-                # Visualizar el grafo con ambas rutas
-                self.visualizar_grafo(ruta_corta, ruta_barata)
+        # Lista de integrantes con sus códigos
+        integrantes = [
+            ('Carlos Adrianzén', 'U202215705'),
+            ('Alejandro Barturen', 'U202214406'),
+            ('Rodrigo Salvador', 'U202213646')
+        ]
 
-            except nx.NetworkXNoPath:
-                self.mostrar_error(f"No se encontró una ruta entre {origen_usuario} y {destino_usuario}.")
+        # Crear un widget para cada integrante
+        for nombre, codigo in integrantes:
+            # Contenedor para cada integrante
+            integrante_widget = QWidget()
+            integrante_layout = QVBoxLayout()
+            integrante_widget.setLayout(integrante_layout)
 
-    # Función para mostrar mensajes de error
-    def mostrar_error(self, mensaje):
-        QMessageBox.warning(self, 'Error', mensaje)
+            # Nombre del integrante
+            nombre_label = QLabel(nombre)
+            nombre_label.setFont(QFont('Arial', 16, QFont.Bold))
+            nombre_label.setStyleSheet("color: white;")
+            nombre_label.setAlignment(Qt.AlignCenter)
+            
+            # Código del integrante
+            codigo_label = QLabel(codigo)
+            codigo_label.setFont(QFont('Arial', 14))
+            codigo_label.setStyleSheet("color: #00FFFF;")
+            codigo_label.setAlignment(Qt.AlignCenter)
 
-    # Función para visualizar el grafo con dos rutas
-    def visualizar_grafo(self, ruta_corta, ruta_barata):
-        self.canvas.figure.clear()
+            integrante_layout.addWidget(nombre_label)
+            integrante_layout.addWidget(codigo_label)
+            layout.addWidget(integrante_widget)
+            
+            # Añadir espacio entre integrantes
+            layout.addSpacing(20)
 
-        ax = self.canvas.figure.add_subplot(111)
-        pos = self.node_positions
+        layout.addSpacing(40)
 
-        # Dibujar nodos
-        nx.draw_networkx_nodes(self.G, pos, node_size=50, node_color='lightblue', ax=ax)  # Nodo más pequeño
+        # Botón de volver
+        boton_volver = QPushButton("Volver al Inicio")
+        boton_volver.setFont(QFont('Arial', 12))
+        boton_volver.setFixedWidth(200)
+        boton_volver.setMinimumHeight(40)
+        boton_volver.setStyleSheet("""
+            QPushButton {
+                background-color: rgba(0, 255, 255, 180);
+                color: black;
+                border: 2px solid #008B8B;
+                border-radius: 15px;
+                padding: 8px;
+            }
+            QPushButton:hover {
+                background-color: rgba(0, 139, 139, 180);
+                color: white;
+            }
+        """)
+        boton_volver.clicked.connect(self.volver_inicio)
+        layout.addWidget(boton_volver, alignment=Qt.AlignCenter)
 
-        # Dibujar todas las aristas (conexiones), con transparencia para mejor visualización
-        nx.draw_networkx_edges(self.G, pos, edgelist=self.G.edges(), width=0.5, alpha=0.3, edge_color='gray', ax=ax)
+        # Configurar el fondo
+        self.setAutoFillBackground(True)
+        palette = self.palette()
+        palette.setColor(QPalette.Window, QColor(40, 40, 40))
+        self.setPalette(palette)
 
-        # Dibujar etiquetas si es necesario
-        nx.draw_networkx_labels(self.G, pos, font_size=6, ax=ax)
+    def volver_inicio(self):
+        self.parentWidget().setCurrentIndex(0)
 
-        # Dibujar la ruta más corta (en rojo)
-        nx.draw_networkx_edges(self.G, pos, edgelist=list(zip(ruta_corta[:-1], ruta_corta[1:])), 
-                               edge_color='red', width=2, ax=ax)
-
-        # Dibujar la ruta más barata (en azul)
-        nx.draw_networkx_edges(self.G, pos, edgelist=list(zip(ruta_barata[:-1], ruta_barata[1:])), 
-                               edge_color='blue', width=2, ax=ax)
-
-        ax.set_title("Red de Entrega de Paquetes en Lima")
-        ax.axis('off')
-
-        self.canvas.draw()
-
-    # Función para cerrar el programa
-    def cerrar_programa(self):
-        sys.exit()
-
-# Clase para gestionar múltiples pantallas
 class MainApp(QStackedWidget):
     def __init__(self):
         super().__init__()
-
         self.pantalla_inicio = PantallaInicio(self)
-        self.pantalla_principal = GraphApp(self)
+        self.pantalla_grafo = GraphVisualization(self)
+        self.pantalla_dijkstra = DijkstraApp(self)
+        self.pantalla_integrantes = PantallaIntegrantes(self)
 
         self.addWidget(self.pantalla_inicio)
-        self.addWidget(self.pantalla_principal)
+        self.addWidget(self.pantalla_grafo)
+        self.addWidget(self.pantalla_dijkstra)
+        self.addWidget(self.pantalla_integrantes)
+        self.setCurrentIndex(0)
 
-# Inicializar la aplicación
+def tiempo_a_minutos(tiempo):
+    minutos, segundos = map(int, tiempo.split(':'))
+    return minutos + segundos / 60
+
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     main_app = MainApp()
-    main_app.setWindowTitle('Red de Entrega de Paquetes en Lima')
+    main_app.setWindowTitle('PackPath Lima')
+    main_app.resize(800, 600)
     main_app.show()
     sys.exit(app.exec_())
