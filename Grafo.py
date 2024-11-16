@@ -103,7 +103,7 @@ class PantallaInicio(QWidget):
         self.fondo.setGeometry(0, 0, self.width(), self.height())
 
         # Actualizar el tamaño y la imagen de fondo
-        pixmap = QPixmap("C:/Users/Rodrigo/Documents/Python/proyectopruebas/delivery.jpg")
+        pixmap = QPixmap("C:/Users/Rodrigo/Documents/Python/proyectopruebas/delivery.jpg") # colocar la imagen delivery según tus archivos o descargas
         scaled_pixmap = pixmap.scaled(
           self.size(),
           Qt.IgnoreAspectRatio,  # Changed from KeepAspectRatioByExpanding
