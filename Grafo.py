@@ -4,7 +4,7 @@ import numpy as np
 import networkx as nx
 from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QLabel, QPushButton,
                            QStackedWidget, QGraphicsOpacityEffect, QMessageBox, 
-                           QLineEdit, QTextEdit)
+                           QLineEdit, QTextEdit, QDialog)
 from PyQt5.QtGui import QFont, QPalette, QColor, QPixmap
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QComboBox
@@ -360,6 +360,32 @@ class DijkstraApp(QWidget):
         self.calcular_button.clicked.connect(self.calcular_rutas)
         layout.addWidget(self.calcular_button)
 
+         # Nuevo botón "Mostrar Todas las Rutas" con estilo similar
+        self.mostrar_todas_button = QPushButton('Mostrar Todas las Rutas')
+        self.mostrar_todas_button.setStyleSheet("""
+           QPushButton {
+               background-color: rgba(0, 255, 255, 180);
+               color: black;
+               border: 2px solid #008B8B;
+               border-radius: 15px;
+               padding: 10px;
+               font-size: 14px;
+               font-weight: bold;
+           }
+           QPushButton:hover {
+               background-color: rgba(0, 139, 139, 180);
+               color: white;
+           }
+            QPushButton:disabled {
+               background-color: rgba(128, 128, 128, 180);
+               border: 2px solid #666666;
+               color: #444444;
+           }
+           """)
+        self.mostrar_todas_button.clicked.connect(self.mostrar_todas_rutas)
+        self.mostrar_todas_button.setEnabled(False)  
+        layout.addWidget(self.mostrar_todas_button)
+
         # Botón "Visualizar Ruta Corta" con estilo
         self.visualizar_ruta_corta_button = QPushButton('Visualizar Ruta Corta')
         self.visualizar_ruta_corta_button.setStyleSheet("""
@@ -413,6 +439,21 @@ class DijkstraApp(QWidget):
         """)
         self.resultado_label.setMaximumHeight(120)  # Limitar la altura del área de resultados
         layout.addWidget(self.resultado_label)
+
+        # Nueva área para mostrar todas las rutas
+        self.todas_rutas_label = QTextEdit()
+        self.todas_rutas_label.setReadOnly(True)
+        self.todas_rutas_label.setStyleSheet("""
+            QTextEdit {
+                background-color: rgba(255, 255, 255, 220);
+                border-radius: 10px;
+                padding: 10px;
+                font-size: 14px;
+            }
+         """)
+        self.todas_rutas_label.setMaximumHeight(200)  # Altura máxima para la lista de rutas
+        self.todas_rutas_label.hide()  # Inicialmente oculto
+        layout.addWidget(self.todas_rutas_label)
 
         # Canvas para el gráfico con tamaño ajustable
         self.figure = plt.Figure(figsize=(14, 10))  # Tamaño de la figura aumentado
@@ -469,10 +510,37 @@ class DijkstraApp(QWidget):
 
             # Establecer el estado de rutas calculadas a True
             self.rutas_calculadas = True
+            self.mostrar_todas_button.setEnabled(True)
 
         except Exception as e:
             QMessageBox.critical(self, 'Error', f'Error al calcular las rutas: {str(e)}')
             self.rutas_calculadas = False
+            self.mostrar_todas_button.setEnabled(False)
+  
+    def mostrar_todas_rutas(self):
+        if not self.rutas_calculadas:
+            QMessageBox.warning(self, 'Advertencia', 'Calcule las rutas primero.')
+            return
+
+        origen = self.origen_entry.currentText()
+        destino = self.destino_entry.currentText()
+        texto_resultado = "Todas las rutas:\n"
+
+        try:
+            for idx, ruta in enumerate(nx.all_simple_paths(self.G, origen, destino), start=1):
+                tiempo = sum(self.G[ruta[i]][ruta[i + 1]]['weight'] for i in range(len(ruta) - 1))
+                costo = sum(self.G[ruta[i]][ruta[i + 1]]['cost'] for i in range(len(ruta) - 1))
+                texto_resultado += f"Ruta {idx}: {' -> '.join(ruta)}\nTiempo: {tiempo:.2f} min, Costo: S/. {costo:.2f}\n\n"
+                if idx >= 50:
+                    texto_resultado += "Mostrando las primeras 50 rutas.\n"
+                    break
+
+            self.todas_rutas_label.setText(texto_resultado)
+            self.todas_rutas_label.show()
+
+        except Exception as e:
+            QMessageBox.critical(self, 'Error', f'Error al mostrar todas las rutas: {str(e)}')
+
 
     def visualizar_ruta_corta(self):
         if not self.rutas_calculadas:
@@ -688,6 +756,32 @@ class BellmanFordApp(QWidget):
         self.calcular_button.clicked.connect(self.calcular_rutas)
         layout.addWidget(self.calcular_button)
 
+         # Nuevo botón "Mostrar Todas las Rutas" con estilo similar
+        self.mostrar_todas_button = QPushButton('Mostrar Todas las Rutas')
+        self.mostrar_todas_button.setStyleSheet("""
+           QPushButton {
+               background-color: rgba(0, 255, 255, 180);
+               color: black;
+               border: 2px solid #008B8B;
+               border-radius: 15px;
+               padding: 10px;
+               font-size: 14px;
+               font-weight: bold;
+           }
+           QPushButton:hover {
+               background-color: rgba(0, 139, 139, 180);
+               color: white;
+           }
+            QPushButton:disabled {
+               background-color: rgba(128, 128, 128, 180);
+               border: 2px solid #666666;
+               color: #444444;
+           }
+           """)
+        self.mostrar_todas_button.clicked.connect(self.mostrar_todas_rutas)
+        self.mostrar_todas_button.setEnabled(False)  
+        layout.addWidget(self.mostrar_todas_button)
+
         # Botón "Visualizar Ruta Corta" con estilo
         self.visualizar_ruta_corta_button = QPushButton('Visualizar Ruta Corta')
         self.visualizar_ruta_corta_button.setStyleSheet("""
@@ -742,6 +836,21 @@ class BellmanFordApp(QWidget):
         self.resultado_label.setMaximumHeight(120)  # Limitar la altura del área de resultados
         layout.addWidget(self.resultado_label)
 
+        # Nueva área para mostrar todas las rutas
+        self.todas_rutas_label = QTextEdit()
+        self.todas_rutas_label.setReadOnly(True)
+        self.todas_rutas_label.setStyleSheet("""
+            QTextEdit {
+                background-color: rgba(255, 255, 255, 220);
+                border-radius: 10px;
+                padding: 10px;
+                font-size: 14px;
+            }
+         """)
+        self.todas_rutas_label.setMaximumHeight(200)  # Altura máxima para la lista de rutas
+        self.todas_rutas_label.hide()  # Inicialmente oculto
+        layout.addWidget(self.todas_rutas_label)
+
         # Canvas para el gráfico con tamaño ajustable
         self.figure = plt.Figure(figsize=(14, 10))  # Tamaño de la figura aumentado
         self.canvas = FigureCanvas(self.figure)
@@ -779,6 +888,10 @@ class BellmanFordApp(QWidget):
         if not origen or not destino:
             QMessageBox.warning(self, 'Error', 'Por favor ingrese origen y destino')
             return
+        
+        if origen not in self.G or destino not in self.G:
+            QMessageBox.warning(self, 'Error', 'Origen o destino no encontrado en el grafo')
+            return
 
         try:
             # Calcular la ruta más corta basada en Bellman-Ford (por tiempo)
@@ -788,15 +901,41 @@ class BellmanFordApp(QWidget):
             tiempo_total = sum(self.G[self.ruta_tiempo[i]][self.ruta_tiempo[i+1]]['weight'] for i in range(len(self.ruta_tiempo)-1))
             costo_total = sum(self.G[self.ruta_costo[i]][self.ruta_costo[i+1]]['cost'] for i in range(len(self.ruta_costo)-1))
 
-            resultado = (f"Ruta más corta (por tiempo):\nTiempo total: {tiempo_total:.2f} minutos\nRecorrido: {' -> '.join(self.ruta_tiempo)}\n\n"
-                         f"Ruta más barata (por costo):\nCosto total: S/. {costo_total:.2f}\nRecorrido: {' -> '.join(self.ruta_costo)}")
+            resultado = (f"Ruta más corta:\nTiempo total: {tiempo_total:.2f} minutos\nRecorrido: {' -> '.join(self.ruta_tiempo)}\n\n"
+                         f"Ruta más barata:\nCosto total: S/. {costo_total:.2f}\nRecorrido: {' -> '.join(self.ruta_costo)}")
             self.resultado_label.setText(resultado)
 
             self.rutas_calculadas = True
+            self.mostrar_todas_button.setEnabled(True)
 
         except Exception as e:
             QMessageBox.critical(self, 'Error', f'Error al calcular las rutas: {str(e)}')
             self.rutas_calculadas = False
+            self.mostrar_todas_button.setEnabled(False)
+
+    def mostrar_todas_rutas(self):
+        if not self.rutas_calculadas:
+            QMessageBox.warning(self, 'Advertencia', 'Calcule las rutas primero.')
+            return
+
+        origen = self.origen_entry.currentText()
+        destino = self.destino_entry.currentText()
+        texto_resultado = "Todas las rutas:\n"
+
+        try:
+            for idx, ruta in enumerate(nx.all_simple_paths(self.G, origen, destino), start=1):
+                tiempo = sum(self.G[ruta[i]][ruta[i + 1]]['weight'] for i in range(len(ruta) - 1))
+                costo = sum(self.G[ruta[i]][ruta[i + 1]]['cost'] for i in range(len(ruta) - 1))
+                texto_resultado += f"Ruta {idx}: {' -> '.join(ruta)}\nTiempo: {tiempo:.2f} min, Costo: S/. {costo:.2f}\n\n"
+                if idx >= 50:
+                    texto_resultado += "Mostrando las primeras 50 rutas.\n"
+                    break
+
+            self.todas_rutas_label.setText(texto_resultado)
+            self.todas_rutas_label.show()
+
+        except Exception as e:
+            QMessageBox.critical(self, 'Error', f'Error al mostrar todas las rutas: {str(e)}')
 
     def visualizar_ruta_corta(self):
         if not self.rutas_calculadas:
