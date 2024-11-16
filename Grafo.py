@@ -103,7 +103,7 @@ class PantallaInicio(QWidget):
         self.fondo.setGeometry(0, 0, self.width(), self.height())
 
         # Actualizar el tamaño y la imagen de fondo
-        pixmap = QPixmap("C:/Users/Rodrigo/Documents/Python/proyectopruebas/delivery.jpg") # colocar la imagen delivery según tus archivos o descargas
+        pixmap = QPixmap("C:/Users/Rodrigo/Documents/Python/proyectopruebas/delivery.jpg")
         scaled_pixmap = pixmap.scaled(
           self.size(),
           Qt.IgnoreAspectRatio,  # Changed from KeepAspectRatioByExpanding
@@ -238,6 +238,7 @@ class DijkstraApp(QWidget):
         self.ruta_costo = []
         self.fig_width = fig_width  # Ancho de la figura
         self.fig_height = fig_height  # Alto de la figura
+        self.rutas_calculadas = False 
         self.initUI()
         self.cargar_datos()
         
@@ -466,10 +467,18 @@ class DijkstraApp(QWidget):
                          f"Ruta más barata:\nCosto total: S/. {costo_total:.2f}\nRecorrido: {' -> '.join(self.ruta_costo)}")
             self.resultado_label.setText(resultado)
 
+            # Establecer el estado de rutas calculadas a True
+            self.rutas_calculadas = True
+
         except Exception as e:
             QMessageBox.critical(self, 'Error', f'Error al calcular las rutas: {str(e)}')
+            self.rutas_calculadas = False
 
     def visualizar_ruta_corta(self):
+        if not self.rutas_calculadas:
+           QMessageBox.warning(self, 'Advertencia', 'Primero debe calcular la ruta')
+           return
+
         self.figure.clear()
         ax = self.figure.add_subplot(111)
         ax.set_title('Ruta Más Corta')
@@ -505,6 +514,10 @@ class DijkstraApp(QWidget):
         self.canvas.draw()
 
     def visualizar_ruta_barata(self):
+        if not self.rutas_calculadas:
+           QMessageBox.warning(self, 'Advertencia', 'Primero debe calcular la ruta')
+           return
+    
         self.figure.clear()
         ax = self.figure.add_subplot(111)
         ax.set_title('Ruta Más Barata')
@@ -553,6 +566,7 @@ class BellmanFordApp(QWidget):
         self.ruta_costo = []
         self.fig_width = fig_width  # Ancho de la figura
         self.fig_height = fig_height  # Alto de la figura
+        self.rutas_calculadas = False
         self.initUI()
         self.cargar_datos()
         
@@ -778,10 +792,17 @@ class BellmanFordApp(QWidget):
                          f"Ruta más barata (por costo):\nCosto total: S/. {costo_total:.2f}\nRecorrido: {' -> '.join(self.ruta_costo)}")
             self.resultado_label.setText(resultado)
 
+            self.rutas_calculadas = True
+
         except Exception as e:
             QMessageBox.critical(self, 'Error', f'Error al calcular las rutas: {str(e)}')
+            self.rutas_calculadas = False
 
     def visualizar_ruta_corta(self):
+        if not self.rutas_calculadas:
+           QMessageBox.warning(self, 'Advertencia', 'Primero debe calcular la ruta')
+           return
+        
         self.figure.clear()
         ax = self.figure.add_subplot(111)
         ax.set_title('Ruta Más Corta')
@@ -818,6 +839,10 @@ class BellmanFordApp(QWidget):
         self.canvas.draw()
 
     def visualizar_ruta_barata(self):
+        if not self.rutas_calculadas:
+           QMessageBox.warning(self, 'Advertencia', 'Primero debe calcular la ruta')
+           return
+    
         self.figure.clear()
         ax = self.figure.add_subplot(111)
         ax.set_title('Ruta Más Barata')
